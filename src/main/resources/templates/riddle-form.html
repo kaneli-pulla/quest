@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <title th:text="${editing} ? 'Редактирование загадки' : 'Новая загадка'">Загадка</title>
+
+    <style>
+        .form-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back-link" th:href="@{/quests/{id}(id=${quest.id})}">← Назад к квесту</a>
+
+    <div class="form-card">
+        <h1 th:text="${editing} ? 'Редактирование загадки' : 'Новая загадка'">Новая загадка</h1>
+
+        <p class="muted">
+            Квест: <strong th:text="${quest.name}">Название</strong>
+        </p>
+
+        <form th:action="${formAction}"
+              th:object="${riddle}"
+              method="post"
+              enctype="multipart/form-data">
+
+            <label for="description">Текст загадки</label>
+            <textarea id="description"
+                      th:field="*{description}"
+                      placeholder="Что должны сделать участники?"></textarea>
+
+            <label for="type">Тип ответа</label>
+            <select id="type" th:field="*{type}" onchange="updateFields()">
+                <option th:each="type : ${types}"
+                        th:value="${type}"
+                        th:text="${type.displayName}">
+                </option>
+            </select>
+
+            <div id="answers-section">
+                <label for="correctAnswersText">Допустимые правильные ответы</label>
+                <textarea id="correctAnswersText"
+                          name="correctAnswersText"
+                          placeholder="По одному варианту на строку"
+                          th:text="${correctAnswersText}"></textarea>
+                <p class="hint">Например: Санкт-Петербург, Петербург и СПб — по одному варианту на строку.</p>
+            </div>
+
+            <div id="photo-section">
+                <label for="referencePhoto">Эталонная фотография</label>
+
+                <img th:if="${editing and riddle.referencePhotoUrl != null}"
+                     th:src="${riddle.referencePhotoUrl}"
+                     class="reference-photo"
+                     alt="Текущая эталонная фотография">
+
+                <input id="referencePhoto"
+                       name="referencePhoto"
+                       type="file"
+                       accept="image/jpeg,image/png,image/webp">
+
+                <p class="hint" th:if="${editing and riddle.referencePhotoUrl != null}">
+                    Если новое фото не выбрать, текущее останется без изменений.
+                </p>
+                <p class="hint" th:if="${!editing or riddle.referencePhotoUrl == null}">
+                    Для фото-загадки необходимо добавить эталонную фотографию.
+                </p>
+            </div>
+
+            <button type="submit" style="margin-top: 20px;"
+                    th:text="${editing} ? 'Сохранить изменения' : 'Создать загадку'">
+                Создать загадку
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function updateFields() {
+        const type = document.getElementById("type").value;
+        document.getElementById("answers-section").classList.toggle("hidden", type === "PHOTO");
+        document.getElementById("photo-section").classList.toggle("hidden", type === "TEXT");
+    }
+
+    updateFields();
+</script>
+</body>
+</html>

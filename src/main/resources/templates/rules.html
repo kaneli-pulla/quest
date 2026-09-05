@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet"
+        th:href="@{/css/global.css}">
+
+  <title>Правила</title>
+
+  <style>
+    .rules-text {
+        white-space: pre-wrap;
+        line-height: 1.7;
+        margin: 0;
+    }
+
+    .boundary-image {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: 80vh;
+        object-fit: contain;
+        border-radius: 12px;
+    }
+
+    .rules-team {
+        color: var(--muted);
+        margin-bottom: 8px;
+    }
+  </style>
+
+</head>
+
+<body
+        th:classappend="${quest.backgroundImageUrl != null}
+            ? ' quest-background'
+            : ''"
+
+        th:style="${quest.backgroundImageUrl != null}
+            ? '--quest-background: url(' + quest.backgroundImageUrl + ')'
+            : ''">
+
+
+<div class="container">
+
+  <a href="/play"
+     class="back-link">
+    ← К загадкам
+  </a>
+
+
+  <div class="card">
+
+    <div class="rules-team">
+      Команда:
+      <strong th:text="${team.name}">
+        Команда
+      </strong>
+    </div>
+
+    <h1>Правила</h1>
+
+
+    <div th:if="${quest.rules != null
+                    and !quest.rules.isBlank()}">
+
+      <p class="rules-text"
+         th:text="${quest.rules}">
+        Правила квеста
+      </p>
+
+    </div>
+
+
+    <p class="muted"
+       th:if="${quest.rules == null
+                  or quest.rules.isBlank()}">
+      Правила пока не добавлены.
+    </p>
+
+  </div>
+
+
+  <div class="card"
+       th:if="${quest.checkpointBoundaryImageUrl != null}">
+
+    <h2>Границы КП</h2>
+
+    <p class="muted">
+      Ответы и действия для контрольных пунктов
+      должны выполняться внутри обозначенной области.
+    </p>
+
+    <img th:src="${quest.checkpointBoundaryImageUrl}"
+         class="boundary-image"
+         alt="Границы контрольных пунктов">
+
+  </div>
+
+
+  <div class="card"
+       th:if="${quest.checkpointBoundaryImageUrl == null}">
+
+    <h2>Границы КП</h2>
+
+    <p class="muted">
+      Карта границ пока не добавлена организатором.
+    </p>
+
+  </div>
+
+</div>
+
+</body>
+</html>

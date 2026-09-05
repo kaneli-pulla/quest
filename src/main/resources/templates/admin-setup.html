@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet"
+        th:href="@{/css/global.css}">
+
+  <title>Первый администратор</title>
+
+  <style>
+    .auth-container {
+      width: 100%;
+      max-width: 460px;
+      margin: 70px auto;
+      padding: 16px;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      padding: 24px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .auth-card p {
+      line-height: 1.55;
+    }
+
+    .message-error {
+      padding: 12px;
+      margin-bottom: 14px;
+      border-radius: 10px;
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="auth-container">
+
+  <div class="auth-card">
+
+    <h1>Первый администратор</h1>
+
+    <p class="muted">
+      Администраторов пока нет.
+      Создайте первый аккаунт.
+      После этого через админку можно будет
+      добавить остальных организаторов.
+    </p>
+
+    <div th:if="${errorMessage != null}"
+         class="message-error"
+         th:text="${errorMessage}">
+    </div>
+
+    <form th:action="@{/admin/setup}"
+          method="post">
+
+      <input type="hidden"
+             th:name="${_csrf.parameterName}"
+             th:value="${_csrf.token}">
+
+      <label for="displayName">
+        Имя
+      </label>
+
+      <input id="displayName"
+             name="displayName"
+             type="text"
+             placeholder="Например: Анна"
+             required>
+
+      <label for="username">
+        Логин
+      </label>
+
+      <input id="username"
+             name="username"
+             type="text"
+             autocomplete="username"
+             placeholder="Например: anna"
+             required>
+
+      <label for="password">
+        Пароль
+      </label>
+
+      <input id="password"
+             name="password"
+             type="password"
+             minlength="8"
+             autocomplete="new-password"
+             required>
+
+      <p class="hint">
+        Минимум 8 символов.
+      </p>
+
+      <button type="submit"
+              style="margin-top: 20px;">
+        Создать администратора
+      </button>
+
+    </form>
+
+  </div>
+
+</div>
+
+</body>
+</html>

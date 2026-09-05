@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <title th:text="|Загадка №${riddleNumber}|">Загадка</title>
+
+    <style>
+        .riddle-heading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .riddle-heading h1 {
+            margin: 0;
+        }
+
+        .type {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .riddle-text {
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .success,
+        .solved,
+        .error,
+        .pending {
+            padding: 14px;
+            margin-bottom: 14px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .success,
+        .solved { background: rgba(231, 247, 231, 0.97); }
+        .error { background: rgba(253, 232, 232, 0.97); }
+        .pending { background: rgba(255, 243, 205, 0.97); }
+
+        .attempt {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .attempt:last-child {
+            border-bottom: 0;
+        }
+    </style>
+</head>
+<body
+        th:classappend="${quest.backgroundImageUrl != null}
+            ? ' quest-background'
+            : ''"
+
+        th:style="${quest.backgroundImageUrl != null}
+            ? '--quest-background: url(' + quest.backgroundImageUrl + ')'
+            : ''">
+<div class="container">
+    <a href="/play" class="back-link">← Все загадки</a>
+
+    <div th:if="${successMessage != null}" class="success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage != null}" class="error" th:text="${errorMessage}"></div>
+
+    <div class="card">
+        <div class="riddle-heading">
+            <div class="riddle-number-badge" th:text="${riddleNumber}">1</div>
+            <h1 th:text="|Загадка №${riddleNumber}|">Загадка №1</h1>
+        </div>
+
+        <div class="type" th:text="${riddle.type.displayName}">Тип загадки</div>
+        <p class="riddle-text" th:text="${riddle.description}">Текст загадки</p>
+    </div>
+
+    <div class="card" th:if="${solved}">
+        <div class="solved">✓ Эта загадка решена</div>
+    </div>
+
+    <div class="card"
+         th:if="${!solved and currentStatus != null and currentStatus.name() == 'PENDING_REVIEW'}">
+        <div class="pending">Фото отправлено и ожидает проверки администратора.</div>
+    </div>
+
+    <div class="card"
+         th:if="${!solved and quest.status.name() == 'ACTIVE' and riddle.type.name() == 'TEXT'}">
+        <form th:action="@{/play/riddles/{id}/answer(id=${riddle.id})}" method="post">
+            <label for="answer">Ваш ответ</label>
+            <input id="answer" name="answer" type="text" autocomplete="off" required placeholder="Введите ответ">
+            <button type="submit" style="margin-top: 12px;">Отправить ответ</button>
+        </form>
+    </div>
+
+    <div class="card"
+         th:if="${!solved
+                 and quest.status.name() == 'ACTIVE'
+                 and (currentStatus == null or currentStatus.name() != 'PENDING_REVIEW')
+                 and riddle.type.name() != 'TEXT'}">
+
+        <form th:action="@{/play/riddles/{id}/photo(id=${riddle.id})}"
+              method="post"
+              enctype="multipart/form-data">
+
+            <div th:if="${riddle.type.name() == 'TEXT_AND_PHOTO'}">
+                <label for="photo-answer">Ваш ответ</label>
+                <input id="photo-answer" name="answer" type="text" autocomplete="off" required placeholder="Введите ответ">
+            </div>
+
+            <label for="photo">Фотография</label>
+            <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" required>
+
+            <button type="submit" style="margin-top: 12px;">Отправить ответ</button>
+        </form>
+    </div>
+
+    <div class="card" th:if="${!solved and quest.status.name() != 'ACTIVE'}">
+        Сейчас ответы на этот квест не принимаются.
+    </div>
+
+    <div class="card" th:if="${!attempts.isEmpty()}">
+        <h2>Ваши попытки</h2>
+
+        <div class="attempt" th:each="attempt : ${attempts}">
+            <strong th:if="${attempt.answerText != null}" th:text="${attempt.answerText}">Ответ</strong>
+
+            <img th:if="${attempt.photoUrl != null}"
+                 th:src="${attempt.photoUrl}"
+                 class="attempt-photo"
+                 alt="Отправленная фотография">
+
+            <div style="margin-top: 8px;" th:text="${attempt.status.displayName}">Статус</div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

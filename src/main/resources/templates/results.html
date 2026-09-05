@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="ru"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet"
+          th:href="@{/css/global.css}">
+
+    <title>Результаты</title>
+
+    <style>
+        .notice.frozen {
+            background: rgba(255, 243, 205, 0.97);
+        }
+
+        .notice.admin-info {
+            background: #e7f1ff;
+        }
+
+        .scoreboard-error {
+            background: var(--danger-soft);
+            color: var(--danger);
+        }
+
+        /*
+         * ==============================
+         * ТАБЛИЦА
+         * ==============================
+         */
+
+        html,
+        body {
+            overflow-anchor: none;
+        }
+
+
+        .table-wrapper {
+            width: 100%;
+
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+
+            overflow-anchor: none;
+
+            background: rgba(255, 255, 255, 0.97);
+
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        table {
+            width: 100%;
+            min-width: 650px;
+
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px 10px;
+
+            text-align: center;
+
+            border-bottom: 1px solid #eeeeee;
+
+            white-space: nowrap;
+        }
+
+        th {
+            background: #fafafa;
+        }
+
+        .team {
+            text-align: left;
+            font-weight: 700;
+        }
+
+        /*
+         * Строка собственной команды
+         * у участника.
+         */
+        .current-team > td:not(.cell-solved):not(.cell-wrong):not(.cell-pending):not(.cell-frozen) {
+            background: #eeeeee;
+        }
+
+
+        /*
+         * ==============================
+         * ЦВЕТА КЛЕТОК
+         * ==============================
+         */
+
+        .cell-solved {
+            background: var(--success-soft);
+        }
+
+        .cell-wrong {
+            background: var(--danger-soft);
+        }
+
+        .cell-pending {
+            background: var(--warning-soft);
+        }
+
+        .cell-frozen {
+            background: #fff3cd;
+        }
+
+
+        .solved {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .wrong {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .pending {
+            color: var(--warning);
+            font-weight: 700;
+        }
+
+
+        .problem-penalty {
+            display: block;
+
+            margin-top: 3px;
+
+            font-size: 11px;
+            color: #555555;
+        }
+
+
+        /*
+         * ==============================
+         * ЗАМОРОЖЕННАЯ ПОСЫЛКА
+         * ==============================
+         */
+
+        .frozen-badge {
+            display: inline-block;
+
+            padding: 5px 8px;
+
+            border-radius: 7px;
+
+            background: #ffd966;
+            color: #5c4500;
+
+            font-weight: 700;
+        }
+
+
+        .reveal-form {
+            display: inline;
+            margin: 0;
+        }
+
+
+        .frozen-button {
+            display: inline-block;
+
+            width: auto;
+
+            margin: 0;
+            padding: 5px 8px;
+
+            border: 0;
+            border-radius: 7px;
+
+            background: #ffd966;
+            color: #5c4500;
+
+            font: inherit;
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition:
+                    box-shadow 0.18s ease,
+                    filter 0.18s ease;
+        }
+
+
+        .frozen-button:hover {
+            filter: brightness(0.96);
+
+            box-shadow:
+                    0 4px 14px
+                    rgba(140, 105, 0, 0.25);
+        }
+
+
+        .frozen-button:active {
+            filter: brightness(0.90);
+        }
+
+
+        .frozen-button:disabled {
+            opacity: 1;
+            cursor: default;
+        }
+
+
+        /*
+         * ==============================
+         * АНИМАЦИЯ ПОСЛЕ КЛИКА
+         * ==============================
+         */
+
+        /*
+ * Все клетки строки должны позволять
+ * рисовать поверх себя подсветку.
+ */
+        tbody td {
+            position: relative;
+        }
+
+
+        /*
+         * Жёлтый слой поверх ВСЕЙ строки.
+         */
+        .team-reveal-active > td::after {
+            content: "";
+
+            position: absolute;
+            inset: 0;
+
+            z-index: 5;
+
+            pointer-events: none;
+
+            background: rgba(255, 193, 7, 0.30);
+
+            animation:
+                    team-highlight-pulse
+                    0.55s ease-in-out
+                    infinite alternate;
+        }
+
+
+        @keyframes team-highlight-pulse {
+            from {
+                background: rgba(255, 193, 7, 0.18);
+            }
+
+            to {
+                background: rgba(255, 193, 7, 0.42);
+            }
+        }
+
+
+        /*
+         * После раскрытия перестаём мигать
+         * и медленно убираем подсветку.
+         */
+        .team-reveal-finished > td::after {
+            content: "";
+
+            position: absolute;
+            inset: 0;
+
+            z-index: 5;
+
+            pointer-events: none;
+
+            background: rgba(255, 193, 7, 0);
+
+            animation:
+                    team-highlight-fade
+                    1.8s ease-out;
+        }
+
+
+        @keyframes team-highlight-fade {
+            from {
+                background: rgba(255, 193, 7, 0.34);
+            }
+
+            to {
+                background: rgba(255, 193, 7, 0);
+            }
+        }
+
+
+        .cell-reveal-start {
+            position: relative;
+            z-index: 4;
+        }
+
+        /*
+         * Мигает только слой поверх клетки.
+         * Размер самой <td> вообще не меняется.
+         */
+        .cell-reveal-start::before {
+            content: "";
+
+            position: absolute;
+            inset: 0;
+
+            z-index: 6;
+
+            pointer-events: none;
+
+            border-radius: 4px;
+
+            animation:
+                    frozen-cell-blink
+                    0.28s ease-in-out
+                    infinite alternate;
+        }
+
+
+        @keyframes frozen-cell-blink {
+
+            from {
+                background:
+                        rgba(255, 217, 102, 0.20);
+
+                box-shadow:
+                        inset 0 0 0 1px
+                        rgba(255, 193, 7, 0.15);
+            }
+
+            to {
+                background:
+                        rgba(255, 183, 0, 0.72);
+
+                box-shadow:
+                        inset 0 0 0 3px
+                        rgba(255, 193, 7, 0.45),
+                        0 0 10px
+                        rgba(255, 193, 7, 0.25);
+            }
+        }
+
+
+        .cell-reveal-result {
+            position: relative;
+            z-index: 3;
+        }
+
+
+        .cell-reveal-result::before {
+            content: "";
+
+            position: absolute;
+            inset: 0;
+
+            z-index: 6;
+
+            pointer-events: none;
+
+            border-radius: 4px;
+
+            animation:
+                    reveal-result
+                    1.8s ease-out forwards;
+        }
+
+
+        @keyframes reveal-result {
+
+            0% {
+                background:
+                        rgba(255, 193, 7, 0.95);
+
+                box-shadow:
+                        inset 0 0 0 3px
+                        rgba(255, 193, 7, 0.40);
+            }
+
+            25% {
+                background:
+                        rgba(255, 202, 40, 0.75);
+            }
+
+            55% {
+                background:
+                        rgba(255, 217, 102, 0.38);
+
+                box-shadow:
+                        inset 0 0 0 1px
+                        rgba(255, 193, 7, 0.18);
+            }
+
+            100% {
+                background:
+                        rgba(255, 217, 102, 0);
+
+                box-shadow:
+                        inset 0 0 0 0
+                        rgba(255, 193, 7, 0);
+            }
+        }
+
+
+        /*
+         * Строки при изменении места
+         * плавно перемещаются.
+         *
+         * Сама страница при этом
+         * не прокручивается.
+         */
+        tbody tr {
+            will-change: transform;
+        }
+
+
+        /*
+         * ==============================
+         * ЛЕГЕНДА
+         * ==============================
+         */
+
+        .legend {
+            margin-top: 14px;
+
+            padding: 14px 16px;
+
+            border-radius: var(--radius);
+
+            background: rgba(255, 255, 255, 0.94);
+
+            font-size: 14px;
+            color: #555555;
+
+            box-shadow: var(--shadow);
+        }
+
+        .legend-item {
+            margin: 6px 0;
+        }
+
+        .legend-color {
+            display: inline-block;
+
+            width: 18px;
+            height: 18px;
+
+            margin-right: 6px;
+
+            border-radius: 4px;
+
+            vertical-align: middle;
+        }
+
+        .legend-green {
+            background: var(--success-soft);
+        }
+
+        .legend-red {
+            background: var(--danger-soft);
+        }
+
+        .legend-yellow {
+            background: #ffd966;
+        }
+
+
+        /*
+         * ==============================
+         * УМЕНЬШЕННАЯ АНИМАЦИЯ
+         * ==============================
+         */
+
+        @media (prefers-reduced-motion: reduce) {
+            .cell-reveal-start,
+            .cell-reveal-result {
+                animation-duration: 0.01ms !important;
+            }
+
+            .team-reveal-active > td,
+            .team-reveal-finished > td {
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+
+
+<body
+        th:classappend="${!adminView and quest.backgroundImageUrl != null}
+            ? ' quest-background'
+            : ''"
+
+        th:style="${!adminView and quest.backgroundImageUrl != null}
+            ? '--quest-background: url(' + quest.backgroundImageUrl + ')'
+            : ''"
+
+        th:attr="
+            data-admin-view=${adminView},
+            data-unfreeze-mode=${unfreezeMode}
+        ">
+
+
+<div class="container-wide">
+
+
+    <!-- ==============================
+         НАЗАД
+         ============================== -->
+
+    <a th:if="${!adminView}"
+       href="/play"
+       class="back-link">
+        ← К загадкам
+    </a>
+
+
+    <a th:if="${adminView}"
+       th:href="@{/quests/{id}(id=${quest.id})}"
+       class="back-link">
+        ← К управлению квестом
+    </a>
+
+
+    <!-- ==============================
+         ЗАГОЛОВОК
+         ============================== -->
+
+    <div class="header">
+
+        <h1>Результаты</h1>
+
+        <strong th:text="${quest.name}">
+            Квест
+        </strong>
+
+    </div>
+
+
+    <!-- ==============================
+         АДМИНСКИЙ РЕЖИМ РАЗМОРОЗКИ
+         ============================== -->
+
+    <div class="card"
+         th:if="${adminView and quest.scoreboardFrozen}">
+
+
+        <div th:if="${!unfreezeMode}">
+
+            <p>
+                Сейчас показана полная таблица администратора.
+            </p>
+
+            <a th:href="@{/quests/{id}/results(
+                    id=${quest.id},
+                    unfreezeMode=true
+                )}"
+               class="action-button">
+
+                Режим разморозки
+
+            </a>
+
+        </div>
+
+
+        <div th:if="${unfreezeMode}">
+
+            <h2>Режим разморозки</h2>
+
+            <p class="muted">
+                Нажимайте на жёлтые клетки,
+                чтобы постепенно раскрывать
+                результаты командам.
+            </p>
+
+            <a th:href="@{/quests/{id}/results(
+                    id=${quest.id}
+                )}"
+               class="secondary-button">
+
+                Показать полную таблицу администратора
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- ==============================
+         УВЕДОМЛЕНИЯ
+         ============================== -->
+
+    <div class="notice frozen"
+         th:if="${!adminView and quest.scoreboardFrozen}">
+
+        🔒 Таблица заморожена.
+        Жёлтым показано количество попыток,
+        результат которых пока скрыт.
+
+    </div>
+
+
+    <div class="notice admin-info"
+         th:if="${adminView
+            and quest.scoreboardFrozen
+            and !unfreezeMode}">
+
+        Публичная таблица сейчас заморожена.
+        Здесь показаны полные актуальные результаты.
+
+    </div>
+
+
+    <div class="notice frozen"
+         th:if="${adminView
+            and quest.scoreboardFrozen
+            and unfreezeMode}">
+
+        🔓 Режим разморозки:
+        нажмите на жёлтую клетку,
+        чтобы раскрыть её участникам.
+
+    </div>
+
+
+    <div class="notice scoreboard-error"
+         th:if="${scoreboardError != null}"
+         th:text="${scoreboardError}">
+
+        Ошибка
+
+    </div>
+
+
+    <!-- ==============================
+         ТАБЛИЦА
+         ============================== -->
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+            <tr>
+
+                <th>Место</th>
+
+                <th>Команда</th>
+
+                <th>Решено</th>
+
+                <th>Штраф</th>
+
+                <th th:each="riddle, riddleStat : ${riddles}"
+                    th:text="${riddleStat.count}">
+                    1
+                </th>
+
+            </tr>
+
+            </thead>
+
+
+            <tbody>
+
+            <tr th:each="score, scoreStat : ${scores}"
+
+                th:attr="
+                    data-team-id=${score.teamId}
+                "
+
+                th:classappend="${!adminView
+                    and score.teamId == currentTeamId}
+                    ? 'current-team'
+                    : ''">
+
+
+                <!-- Место -->
+
+                <td th:text="${scoreStat.count}">
+                    1
+                </td>
+
+
+                <!-- Команда -->
+
+                <td class="team"
+                    th:text="${score.teamName}">
+
+                    Котики
+
+                </td>
+
+
+                <!-- Решено -->
+
+                <td th:text="${score.solved}">
+                    0
+                </td>
+
+
+                <!-- Штраф -->
+
+                <td th:text="${score.penaltyMinutes}">
+                    0
+                </td>
+
+
+                <!-- Задачи -->
+
+                <td th:each="result : ${score.riddleResults}"
+
+                    th:attr="
+                        data-riddle-id=${result.riddleId}
+                    "
+
+                    th:classappend="${result.frozenAttempts > 0}
+                        ? 'cell-frozen'
+                        : (${result.solved}
+                            ? 'cell-solved'
+                            : (${result.pendingAttempts > 0}
+                                ? 'cell-pending'
+                                : (${result.wrongAttempts > 0}
+                                    ? 'cell-wrong'
+                                    : ''
+                                )
+                            )
+                        )">
+
+
+                    <!-- Решено без ошибок -->
+
+                    <span class="solved"
+                          th:if="${result.solved
+                              and result.wrongAttempts == 0}">
+
+                        +
+
+                    </span>
+
+
+                    <!-- Решено после неправильных попыток -->
+
+                    <span class="solved"
+                          th:if="${result.solved
+                              and result.wrongAttempts > 0}"
+
+                          th:text="|+${result.wrongAttempts}|">
+
+                        +2
+
+                    </span>
+
+
+                    <!-- Штраф по задаче -->
+
+                    <span class="problem-penalty"
+                          th:if="${result.solved}"
+
+                          th:text="${result.penaltyMinutes}">
+
+                        77
+
+                    </span>
+
+
+                    <!-- Не решено, есть ошибки -->
+
+                    <span class="wrong"
+                          th:if="${!result.solved
+                              and result.pendingAttempts == 0
+                              and result.wrongAttempts > 0}"
+
+                          th:text="|-${result.wrongAttempts}|">
+
+                        -2
+
+                    </span>
+
+
+                    <!-- Ожидает проверки -->
+
+                    <span class="pending"
+                          th:if="${!result.solved
+                              and result.pendingAttempts > 0}">
+
+                        ?
+
+                    </span>
+
+
+                    <!-- Вообще нет попыток -->
+
+                    <span th:if="${!result.solved
+                        and result.pendingAttempts == 0
+                        and result.wrongAttempts == 0
+                        and result.frozenAttempts == 0}">
+
+                        —
+
+                    </span>
+
+
+                    <!--
+                        Обычная жёлтая клетка:
+                        участник видит ?N,
+                        но нажать не может.
+                    -->
+
+                    <span class="frozen-badge"
+
+                          th:if="${result.frozenAttempts > 0
+                              and !unfreezeMode}"
+
+                          th:text="|?${result.frozenAttempts}|">
+
+                        ?2
+
+                    </span>
+
+
+                    <!--
+                        Администраторский
+                        режим разморозки.
+                    -->
+
+                    <form th:if="${adminView
+    and unfreezeMode
+    and result.frozenAttempts > 0}"
+
+                          th:action="@{/quests/{questId}/scoreboard/reveal-cell(
+          questId=${quest.id}
+      )}"
+
+                          method="post"
+
+                          class="reveal-form"
+
+                          onsubmit="event.preventDefault(); prepareReveal(this); return false;">
+
+                        <input type="hidden"
+                               th:name="${_csrf.parameterName}"
+                               th:value="${_csrf.token}">
+
+                        <input type="hidden"
+                               name="teamId"
+                               th:value="${score.teamId}">
+
+                        <input type="hidden"
+                               name="riddleId"
+                               th:value="${result.riddleId}">
+
+                        <button type="button"
+                                class="frozen-button"
+                                onclick="prepareReveal(this.closest('form'))"
+                                th:text="|?${result.frozenAttempts}|"
+                                title="Раскрыть результат">
+
+                            ?2
+
+                        </button>
+
+                    </form>
+                </td>
+
+            </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- ==============================
+         ЛЕГЕНДА
+         ============================== -->
+
+    <div class="legend">
+
+        <div class="legend-item">
+
+            <span class="legend-color legend-green"></span>
+
+            Решённая задача
+
+        </div>
+
+
+        <div class="legend-item">
+
+            <span class="legend-color legend-red"></span>
+
+            Есть неправильные попытки,
+            но задача не решена
+
+        </div>
+
+
+        <div class="legend-item">
+
+            <span class="legend-color legend-yellow"></span>
+
+            ?N — количество попыток,
+            результат которых пока скрыт
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+    /*
+     * Одновременно раскрываем только
+     * одну клетку.
+     */
+    let revealInProgress = false;
+
+
+    /*
+     * ==========================================
+     * НАЖАТИЕ НА ЖЁЛТУЮ КЛЕТКУ
+     * ==========================================
+     */
+
+    async function prepareReveal(form) {
+
+        /*
+         * Не разрешаем одновременно раскрывать
+         * две клетки.
+         */
+        if (revealInProgress) {
+            return;
+        }
+
+
+        const row =
+            form.closest(
+                "tr[data-team-id]"
+            );
+
+
+        const cell =
+            form.closest(
+                "td[data-riddle-id]"
+            );
+
+
+        const button =
+            form.querySelector(
+                ".frozen-button"
+            );
+
+
+        if (!row || !cell) {
+            return;
+        }
+
+
+        revealInProgress = true;
+
+
+        /*
+         * Запоминаем момент клика.
+         *
+         * Результат специально не покажем
+         * слишком быстро, даже если сервер
+         * ответил мгновенно.
+         */
+        const animationStartedAt =
+            performance.now();
+
+
+        const teamId =
+            row.dataset.teamId;
+
+
+        const riddleId =
+            cell.dataset.riddleId;
+
+
+        /*
+         * Запоминаем текущую прокрутку.
+         */
+        const scrollState =
+            rememberScrollPosition();
+
+
+        /*
+         * СРАЗУ подсвечиваем всю строку.
+         */
+        row.classList.add(
+            "team-reveal-active"
+        );
+
+
+        /*
+         * И сразу запускаем мигание
+         * выбранной клетки.
+         */
+        cell.classList.add(
+            "cell-reveal-start"
+        );
+
+
+        if (button) {
+            button.disabled = true;
+        }
+
+
+        try {
+
+            const formData =
+                new FormData(form);
+
+
+            /*
+             * Никакого обычного submit здесь нет.
+             *
+             * Только фоновый HTTP-запрос.
+             */
+            const response =
+                await fetch(
+                    form.action,
+                    {
+                        method: "POST",
+
+                        body: formData,
+
+                        credentials: "same-origin",
+
+                        headers: {
+                            "X-Requested-With":
+                                "XMLHttpRequest"
+                        }
+                    }
+                );
+
+
+            /*
+             * Если закончилась админская сессия,
+             * тогда переход действительно нужен.
+             */
+            if (
+                response.redirected
+                && response.url.includes(
+                    "/admin/login"
+                )
+            ) {
+
+                window.location.href =
+                    response.url;
+
+                return;
+            }
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "HTTP "
+                    + response.status
+                );
+
+            }
+
+
+            const html =
+                await response.text();
+
+
+            const parser =
+                new DOMParser();
+
+
+            const newDocument =
+                parser.parseFromString(
+                    html,
+                    "text/html"
+                );
+
+
+            /*
+             * Проверяем серверную ошибку.
+             */
+            const returnedError =
+                newDocument.querySelector(
+                    ".scoreboard-error"
+                );
+
+
+            if (
+                returnedError
+                && returnedError
+                    .textContent
+                    .trim()
+            ) {
+
+                showScoreboardError(
+                    returnedError
+                        .textContent
+                        .trim()
+                );
+
+
+                cancelRevealAnimation(
+                    row,
+                    cell,
+                    button
+                );
+
+
+                return;
+            }
+
+
+            clearScoreboardError();
+
+
+            /*
+             * Даже если сервер ответил за 50 мс,
+             * жёлтая анимация будет видна
+             * минимум 1.2 секунды.
+             */
+            const elapsed =
+                performance.now()
+                - animationStartedAt;
+
+
+            const minimumAnimationTime =
+                1200;
+
+
+            if (
+                elapsed
+                < minimumAnimationTime
+            ) {
+
+                await sleep(
+                    minimumAnimationTime
+                    - elapsed
+                );
+
+            }
+
+
+            /*
+             * Меняем только таблицу.
+             *
+             * Никакого reload страницы.
+             */
+            updateScoreboard(
+                newDocument,
+                teamId,
+                riddleId,
+                scrollState
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Reveal error:",
+                error
+            );
+
+
+            showScoreboardError(
+                "Не удалось раскрыть результат. "
+                + "Попробуйте ещё раз."
+            );
+
+
+            cancelRevealAnimation(
+                row,
+                cell,
+                button
+            );
+
+
+        } finally {
+
+            revealInProgress = false;
+
+        }
+    }
+
+
+    /*
+     * ==========================================
+     * ОБНОВЛЕНИЕ ТАБЛИЦЫ БЕЗ ПЕРЕЗАГРУЗКИ
+     * ==========================================
+     */
+
+    function updateScoreboard(
+        newDocument,
+        revealedTeamId,
+        revealedRiddleId,
+        scrollState
+    ) {
+
+        const currentBody =
+            document.querySelector(
+                ".table-wrapper tbody"
+            );
+
+
+        const newBody =
+            newDocument.querySelector(
+                ".table-wrapper tbody"
+            );
+
+
+        if (!currentBody || !newBody) {
+
+            throw new Error(
+                "Не удалось получить обновлённую таблицу"
+            );
+
+        }
+
+
+        /*
+         * --------------------------------------
+         * FLIP animation
+         * --------------------------------------
+         *
+         * Запоминаем положение команд
+         * ДО изменения рейтинга.
+         */
+        const oldPositions =
+            new Map();
+
+
+        currentBody
+            .querySelectorAll(
+                "tr[data-team-id]"
+            )
+            .forEach(row => {
+
+                oldPositions.set(
+                    row.dataset.teamId,
+                    row
+                        .getBoundingClientRect()
+                        .top
+                );
+
+            });
+
+
+        /*
+         * Берём новый HTML tbody,
+         * который сервер уже пересчитал
+         * с правильными:
+         *
+         * - местами;
+         * - solved;
+         * - penalty;
+         * - цветами клеток;
+         * - количеством попыток.
+         */
+        currentBody.innerHTML =
+            newBody.innerHTML;
+
+
+        /*
+         * Находим строку раскрытой команды
+         * уже НА НОВОМ месте.
+         */
+        const revealedRow =
+            currentBody.querySelector(
+                `tr[data-team-id="${revealedTeamId}"]`
+            );
+
+
+        let revealedCell = null;
+
+
+        if (revealedRow) {
+
+            /*
+             * Новая строка продолжает ту же
+             * жёлтую подсветку.
+             */
+            revealedRow.classList.add(
+                "team-reveal-active"
+            );
+
+
+            const revealedCell =
+                revealedRow.querySelector(
+                    `td[data-riddle-id="${revealedRiddleId}"]`
+                );
+
+
+            if (revealedCell) {
+
+                revealedCell.classList.add(
+                    "cell-reveal-result"
+                );
+
+            }
+
+
+            /*
+             * Ещё некоторое время держим
+             * строку подсвеченной.
+             */
+            window.setTimeout(() => {
+
+                revealedRow.classList.remove(
+                    "team-reveal-active"
+                );
+
+
+                revealedRow.classList.add(
+                    "team-reveal-finished"
+                );
+
+            }, 1200);
+
+
+            /*
+             * После завершения fade
+             * очищаем временный класс.
+             */
+            window.setTimeout(() => {
+
+                revealedRow.classList.remove(
+                    "team-reveal-finished"
+                );
+
+            }, 3100);
+        }
+
+
+        /*
+         * Сразу возвращаем страницу и
+         * горизонтальный скролл таблицы
+         * ровно туда, где они были.
+         */
+        restoreScrollPosition(
+            scrollState
+        );
+
+
+        /*
+         * Теперь DOM уже стоит в новом порядке.
+         *
+         * Для каждой команды вычисляем,
+         * насколько изменилось её положение.
+         */
+        const rows =
+            Array.from(
+                currentBody.querySelectorAll(
+                    "tr[data-team-id]"
+                )
+            );
+
+
+        rows.forEach(row => {
+
+            const oldTop =
+                oldPositions.get(
+                    row.dataset.teamId
+                );
+
+
+            if (oldTop == null) {
+                return;
+            }
+
+
+            const newTop =
+                row
+                    .getBoundingClientRect()
+                    .top;
+
+
+            const difference =
+                oldTop - newTop;
+
+
+            /*
+             * Если команда осталась на месте,
+             * её двигать не нужно.
+             */
+            if (
+                Math.abs(difference)
+                < 1
+            ) {
+
+                return;
+
+            }
+
+
+            /*
+             * Визуально ставим строку
+             * обратно туда, где она была.
+             */
+            row.style.transition =
+                "none";
+
+
+            row.style.transform =
+                `translateY(${difference}px)`;
+
+        });
+
+
+        /*
+         * Принудительно заставляем браузер
+         * применить начальные transform.
+         */
+        void currentBody.offsetHeight;
+
+
+        /*
+         * На следующем кадре плавно
+         * отпускаем все строки на новые места.
+         */
+        requestAnimationFrame(() => {
+
+            rows.forEach(row => {
+
+                row.style.transition =
+                    "transform 0.7s "
+                    + "cubic-bezier("
+                    + "0.22, 1, 0.36, 1"
+                    + ")";
+
+
+                row.style.transform =
+                    "translateY(0)";
+
+            });
+
+
+            /*
+             * Ещё раз фиксируем scroll,
+             * чтобы browser scroll anchoring
+             * не попытался помочь нам сам.
+             */
+            restoreScrollPosition(
+                scrollState
+            );
+
+        });
+
+
+        /*
+         * Подсветка строки начинается сразу
+         * после клика и сохраняется ещё немного
+         * после появления результата.
+         */
+
+
+        /*
+         * Убираем временный transition
+         * после завершения перестановки.
+         */
+        window.setTimeout(() => {
+
+            rows.forEach(row => {
+
+                row.style.transition =
+                    "";
+
+                row.style.transform =
+                    "";
+
+            });
+
+        }, 850);
+
+    }
+
+
+    /*
+     * ==========================================
+     * СОХРАНЕНИЕ ПОЗИЦИИ ЭКРАНА
+     * ==========================================
+     */
+
+    function rememberScrollPosition() {
+
+        const wrapper =
+            document.querySelector(
+                ".table-wrapper"
+            );
+
+
+        return {
+            windowX:
+            window.scrollX,
+
+            windowY:
+            window.scrollY,
+
+            tableLeft:
+                wrapper
+                    ? wrapper.scrollLeft
+                    : 0,
+
+            tableTop:
+                wrapper
+                    ? wrapper.scrollTop
+                    : 0
+        };
+
+    }
+
+
+    function restoreScrollPosition(
+        state
+    ) {
+
+        if (!state) {
+            return;
+        }
+
+
+        /*
+         * Никакого smooth здесь специально нет:
+         * пользователь вообще не должен замечать,
+         * что браузер что-то восстанавливал.
+         */
+        window.scrollTo(
+            state.windowX,
+            state.windowY
+        );
+
+
+        const wrapper =
+            document.querySelector(
+                ".table-wrapper"
+            );
+
+
+        if (wrapper) {
+
+            wrapper.scrollLeft =
+                state.tableLeft;
+
+
+            wrapper.scrollTop =
+                state.tableTop;
+
+        }
+
+    }
+
+
+    /*
+     * ==========================================
+     * ОТМЕНА АНИМАЦИИ ПРИ ОШИБКЕ
+     * ==========================================
+     */
+
+    function cancelRevealAnimation(
+        row,
+        cell,
+        button
+    ) {
+
+        if (row) {
+
+            row.classList.remove(
+                "team-reveal-active"
+            );
+
+
+            row.classList.add(
+                "team-reveal-finished"
+            );
+
+
+            window.setTimeout(() => {
+
+                row.classList.remove(
+                    "team-reveal-finished"
+                );
+
+            }, 900);
+
+        }
+
+
+        if (cell) {
+
+            cell.classList.remove(
+                "cell-reveal-start"
+            );
+
+        }
+
+
+        if (button) {
+
+            button.disabled =
+                false;
+
+        }
+
+    }
+
+
+    /*
+     * ==========================================
+     * ОШИБКА SCOREBOARD
+     * ==========================================
+     */
+
+    function showScoreboardError(
+        message
+    ) {
+
+        let notice =
+            document.querySelector(
+                ".scoreboard-error"
+            );
+
+
+        if (!notice) {
+
+            notice =
+                document.createElement(
+                    "div"
+                );
+
+
+            notice.className =
+                "notice scoreboard-error";
+
+
+            const wrapper =
+                document.querySelector(
+                    ".table-wrapper"
+                );
+
+
+            if (wrapper) {
+
+                wrapper.parentNode
+                    .insertBefore(
+                        notice,
+                        wrapper
+                    );
+
+            }
+
+        }
+
+
+        notice.textContent =
+            message;
+
+
+        notice.style.display =
+            "block";
+
+    }
+
+
+    function clearScoreboardError() {
+
+        const notice =
+            document.querySelector(
+                ".scoreboard-error"
+            );
+
+
+        if (notice) {
+
+            notice.remove();
+
+        }
+
+    }
+
+
+    /*
+     * ==========================================
+     * ВСПОМОГАТЕЛЬНАЯ ПАУЗА
+     * ==========================================
+     */
+
+    function sleep(
+        milliseconds
+    ) {
+
+        return new Promise(
+            resolve => {
+
+                window.setTimeout(
+                    resolve,
+                    milliseconds
+                );
+
+            }
+        );
+
+    }
+</script>
+
+</body>
+</html>

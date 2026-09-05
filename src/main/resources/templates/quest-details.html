@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <title th:text="${quest.name}">Квест</title>
+
+    <style>
+        .quest-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin: 10px 0 16px;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: #eeeeee;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .team-card,
+        .riddle-card {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .team-card:last-child,
+        .riddle-card:last-child {
+            border-bottom: 0;
+        }
+
+        .riddle-card {
+            display: grid;
+            grid-template-columns: 46px 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .riddle-content {
+            min-width: 0;
+        }
+
+        .riddle-type {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .riddle-description {
+            white-space: pre-wrap;
+            line-height: 1.55;
+            margin-top: 0;
+        }
+
+        .qr-image {
+            display: block;
+            width: min(100%, 320px);
+            margin: 20px auto;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="/quests" class="back-link">← Все квесты</a>
+
+    <div class="card">
+        <h1 th:text="${quest.name}">Название квеста</h1>
+        <p th:if="${quest.description != null and !quest.description.isBlank()}"
+           th:text="${quest.description}">Описание квеста</p>
+        <div th:if="${quest.rules != null
+            and !quest.rules.isBlank()}">
+
+            <h3>Правила</h3>
+
+            <p class="quest-long-text"
+               th:text="${quest.rules}">
+                Правила
+            </p>
+
+        </div>
+
+        <div class="quest-meta">
+            <span class="muted">Статус:</span>
+            <span class="status-pill" th:text="${quest.status.displayName}">Черновик</span>
+        </div>
+
+
+        <img th:if="${quest.backgroundImageUrl != null}"
+             th:src="${quest.backgroundImageUrl}"
+             class="background-preview"
+             alt="Фон квеста">
+        <div th:if="${quest.checkpointBoundaryImageUrl != null}">
+
+            <h3>Границы КП</h3>
+
+            <img th:src="${quest.checkpointBoundaryImageUrl}"
+                 class="background-preview"
+                 alt="Границы КП">
+
+        </div>
+
+        <div class="stack-actions">
+            <a th:href="@{/quests/{id}/edit(id=${quest.id})}"
+               class="secondary-button">Редактировать квест</a>
+
+            <form th:if="${quest.status.name() == 'DRAFT'}"
+                  th:action="@{/quests/{id}/start(id=${quest.id})}"
+                  method="post">
+                <button type="submit">Запустить квест</button>
+            </form>
+
+            <form th:if="${quest.status.name() == 'ACTIVE'}"
+                  th:action="@{/quests/{id}/finish(id=${quest.id})}"
+                  method="post">
+                <button type="submit">Завершить квест</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Настройки результатов</h2>
+
+        <form th:action="@{/quests/{id}/settings/penalty(id=${quest.id})}" method="post">
+            <label for="penalty">Штраф за неправильную попытку, минут</label>
+            <input id="penalty" type="number" name="minutes" min="0"
+                   th:value="${quest.wrongAttemptPenaltyMinutes}">
+            <button type="submit" style="margin-top: 12px;">Сохранить настройки</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Таблица результатов</h2>
+
+        <p th:if="${!quest.scoreboardFrozen}">Результаты обновляются в реальном времени.</p>
+        <p th:if="${quest.scoreboardFrozen}">🔒 Таблица результатов заморожена.</p>
+
+        <div class="stack-actions">
+            <a th:href="@{/quests/{id}/results(id=${quest.id})}" class="action-button">
+                Открыть полную таблицу
+            </a>
+
+            <form th:if="${!quest.scoreboardFrozen and quest.status.name() == 'ACTIVE'}"
+                  th:action="@{/quests/{id}/scoreboard/freeze(id=${quest.id})}"
+                  method="post">
+                <button type="submit">Заморозить результаты</button>
+            </form>
+
+            <form th:if="${quest.scoreboardFrozen}"
+                  th:action="@{/quests/{id}/scoreboard/unfreeze(id=${quest.id})}"
+                  method="post">
+                <button type="submit">Разморозить результаты</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Проверка ответов</h2>
+        <a th:href="@{/quests/{id}/review(id=${quest.id})}" class="action-button">
+            Проверить фото-ответы
+        </a>
+    </div>
+
+    <div class="card">
+        <h2>Команды</h2>
+
+        <a th:href="@{/quests/{id}/teams/new(id=${quest.id})}" class="action-button">
+            Добавить команду
+        </a>
+
+        <p th:if="${teams.isEmpty()}" class="muted">Команд пока нет.</p>
+
+        <div class="team-card" th:each="team : ${teams}">
+            <h3 th:text="${team.name}">Команда</h3>
+
+            <button type="button"
+                    class="secondary-button"
+                    th:attr="data-team-name=${team.name},
+                             data-invite-path=@{/join/{token}(token=${team.inviteToken})},
+                             data-qr-url=@{/quests/{questId}/teams/{teamId}/qr(questId=${quest.id},teamId=${team.id})}"
+                    onclick="openQrModal(this)">
+                Показать QR-код
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Загадки</h2>
+
+        <a th:href="@{/quests/{id}/riddles/new(id=${quest.id})}" class="action-button">
+            Добавить загадку
+        </a>
+
+        <p th:if="${riddles.isEmpty()}" class="muted">Пока нет ни одной загадки.</p>
+
+        <div class="riddle-card" th:each="riddle, riddleStat : ${riddles}">
+            <div class="riddle-number-badge" th:text="${riddleStat.count}">1</div>
+
+            <div class="riddle-content">
+                <div class="riddle-type" th:text="${riddle.type.displayName}">Тип</div>
+
+                <p class="riddle-description" th:text="${riddle.description}">Описание</p>
+
+                <img th:if="${riddle.referencePhotoUrl != null}"
+                     th:src="${riddle.referencePhotoUrl}"
+                     class="reference-photo"
+                     alt="Эталонное фото">
+
+                <div class="inline-actions">
+                    <a th:href="@{/quests/{questId}/riddles/{riddleId}/edit(
+                            questId=${quest.id},
+                            riddleId=${riddle.id}
+                        )}"
+                       class="secondary-button">
+                        Редактировать
+                    </a>
+
+                    <form th:action="@{/quests/{questId}/riddles/{riddleId}/delete(
+                            questId=${quest.id},
+                            riddleId=${riddle.id}
+                        )}"
+                          method="post"
+                          onsubmit="return confirm('Удалить загадку и все ответы команд на неё?')">
+                        <button type="submit" class="danger-button">Удалить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="qr-modal" class="modal" onclick="if (event.target === this) closeQrModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="qr-team-name">Команда</h2>
+            <button type="button" class="close-button" onclick="closeQrModal()">×</button>
+        </div>
+
+        <img id="qr-image" class="qr-image" src="" alt="QR-код приглашения">
+
+        <label for="invite-url">Ссылка приглашения</label>
+        <input id="invite-url" type="text" readonly>
+
+        <button id="copy-button" type="button" onclick="copyInviteLink()" style="margin-top: 12px;">
+            Скопировать ссылку
+        </button>
+
+        <a id="open-invite" class="action-button" href="#" target="_blank" style="margin-top: 10px;">
+            Открыть приглашение
+        </a>
+    </div>
+</div>
+
+<script>
+    function openQrModal(button) {
+        const teamName = button.dataset.teamName;
+        const inviteUrl = window.location.origin + button.dataset.invitePath;
+
+        document.getElementById("qr-team-name").textContent = teamName;
+        document.getElementById("qr-image").src = button.dataset.qrUrl;
+        document.getElementById("invite-url").value = inviteUrl;
+        document.getElementById("open-invite").href = inviteUrl;
+
+        document.getElementById("qr-modal").classList.add("open");
+        document.body.classList.add("modal-open");
+    }
+
+    function closeQrModal() {
+        document.getElementById("qr-modal").classList.remove("open");
+        document.getElementById("qr-image").src = "";
+        document.body.classList.remove("modal-open");
+    }
+
+    async function copyInviteLink() {
+        const input = document.getElementById("invite-url");
+        const button = document.getElementById("copy-button");
+
+        try {
+            await navigator.clipboard.writeText(input.value);
+        } catch (error) {
+            input.select();
+            document.execCommand("copy");
+        }
+
+        button.textContent = "Скопировано!";
+        setTimeout(() => button.textContent = "Скопировать ссылку", 1500);
+    }
+
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            closeQrModal();
+        }
+    });
+</script>
+</body>
+</html>

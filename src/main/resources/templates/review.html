@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <title>Проверка ответов</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f4f4;
+        }
+
+        .container {
+            width: 100%;
+            padding: 16px;
+        }
+
+        .header,
+        .submission {
+            background: white;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 14px;
+        }
+
+        .submission-pending {
+            border: 2px solid #e8cf77;
+            background: #fffdf4;
+        }
+
+        .submission-correct {
+            border-left: 5px solid #267a3a;
+        }
+
+        .submission-wrong {
+            border-left: 5px solid #b3261e;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 9px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #755900;
+        }
+
+        .status-correct {
+            background: #dff3e3;
+            color: #167c2c;
+        }
+
+        .status-wrong {
+            background: #fde0de;
+            color: #b3261e;
+        }
+
+        .photos {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .photo-box img {
+            width: 100%;
+            max-height: 420px;
+            object-fit: contain;
+            border-radius: 10px;
+            background: #eee;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: 0;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: default;
+        }
+
+        .accept {
+            background: #267a3a;
+        }
+
+        .reject {
+            background: #b3261e;
+        }
+
+        .notifications {
+            background: #222;
+            margin-top: 10px;
+        }
+
+        .empty {
+            background: white;
+            padding: 20px;
+            border-radius: 14px;
+        }
+
+        .summary {
+            color: #555;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                max-width: 1000px;
+                margin: 0 auto;
+            }
+
+            .photos {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body th:attr="data-quest-id=${quest.id},data-submission-count=${photoSubmissionCount}">
+
+<div class="container">
+
+    <a th:href="@{/quests/{id}(id=${quest.id})}">
+        ← К управлению квестом
+    </a>
+
+    <div class="header">
+        <h1>Проверка фото</h1>
+
+        <p class="summary">
+            Ожидают проверки:
+            <strong th:text="${pendingCount}">0</strong>
+        </p>
+
+        <button id="notifications-button"
+                type="button"
+                class="notifications"
+                onclick="enableNotifications()">
+            Включить уведомления
+        </button>
+    </div>
+
+    <div class="empty" th:if="${submissions.isEmpty()}">
+        Пока не было ни одной фото-посылки.
+    </div>
+
+    <div class="submission"
+         th:each="submission : ${submissions}"
+         th:classappend="${submission.status.name() == 'PENDING_REVIEW'} ? 'submission-pending' :
+             (${submission.status.name() == 'CORRECT'} ? 'submission-correct' : 'submission-wrong')">
+
+        <div class="status status-pending"
+             th:if="${submission.status.name() == 'PENDING_REVIEW'}">
+            Ожидает проверки
+        </div>
+
+        <div class="status status-correct"
+             th:if="${submission.status.name() == 'CORRECT'}">
+            ✓ Принято
+        </div>
+
+        <div class="status status-wrong"
+             th:if="${submission.status.name() == 'WRONG'}">
+            ✕ Отклонено
+        </div>
+
+        <h2 th:text="|Загадка №${riddleNumbers[submission.riddle.id]}|">
+            Загадка №1
+        </h2>
+
+        <p>
+            Команда:
+            <strong th:text="${submission.team.name}">
+                Команда
+            </strong>
+        </p>
+
+        <p th:if="${submission.answerText != null}">
+            Ответ:
+            <strong th:text="${submission.answerText}">
+                Текст
+            </strong>
+        </p>
+
+        <div class="photos">
+
+            <div class="photo-box">
+                <h3>Эталон</h3>
+
+                <img th:src="${submission.riddle.referencePhotoUrl}"
+                     alt="Эталонная фотография">
+            </div>
+
+            <div class="photo-box">
+                <h3>Ответ команды</h3>
+
+                <img th:src="${submission.photoUrl}"
+                     alt="Фотография команды">
+            </div>
+
+        </div>
+
+        <div class="buttons">
+
+            <form th:action="@{/quests/{questId}/review/{submissionId}/reject(
+                    questId=${quest.id},
+                    submissionId=${submission.id}
+                )}"
+                  method="post">
+
+                <button class="reject"
+                        type="submit"
+                        th:disabled="${submission.status.name() == 'WRONG'}"
+                        th:text="${submission.status.name() == 'WRONG'} ? 'Отклонено' : 'Отклонить'">
+                    Отклонить
+                </button>
+            </form>
+
+            <form th:action="@{/quests/{questId}/review/{submissionId}/accept(
+                    questId=${quest.id},
+                    submissionId=${submission.id}
+                )}"
+                  method="post">
+
+                <button class="accept"
+                        type="submit"
+                        th:disabled="${submission.status.name() == 'CORRECT'}"
+                        th:text="${submission.status.name() == 'CORRECT'} ? 'Принято' : 'Принять'">
+                    Принять
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const questId = document.body.dataset.questId;
+    let knownSubmissionCount = Number(document.body.dataset.submissionCount);
+    const notificationsButton = document.getElementById("notifications-button");
+
+    if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/sw.js");
+    }
+
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+        notificationsButton.style.display = "none";
+    } else if (Notification.permission === "granted") {
+        notificationsButton.textContent = "Уведомления включены";
+    } else if (Notification.permission === "denied") {
+        notificationsButton.textContent = "Уведомления запрещены";
+        notificationsButton.disabled = true;
+    }
+
+    async function enableNotifications() {
+        if (!("Notification" in window)) {
+            return;
+        }
+
+        const permission = await Notification.requestPermission();
+
+        if (permission === "granted") {
+            notificationsButton.textContent = "Уведомления включены";
+        } else if (permission === "denied") {
+            notificationsButton.textContent = "Уведомления запрещены";
+            notificationsButton.disabled = true;
+        }
+    }
+
+    async function showNewSubmissionNotification(count) {
+        if (Notification.permission !== "granted") {
+            return;
+        }
+
+        const registration = await navigator.serviceWorker.ready;
+
+        await registration.showNotification("Новая фото-посылка", {
+            body: count === 1
+                ? "Получен новый ответ для проверки"
+                : `Получено новых ответов: ${count}`,
+            data: {
+                url: window.location.href
+            }
+        });
+    }
+
+    async function checkForNewSubmissions() {
+        try {
+            const response = await fetch(
+                `/quests/${questId}/review/count`,
+                {cache: "no-store"}
+            );
+
+            if (!response.ok) {
+                return;
+            }
+
+            const count = Number(await response.text());
+
+            if (count > knownSubmissionCount) {
+                const newCount = count - knownSubmissionCount;
+
+                await showNewSubmissionNotification(newCount);
+
+                window.location.reload();
+                return;
+            }
+
+            knownSubmissionCount = count;
+        } catch (error) {
+            console.log("Не удалось проверить новые посылки");
+        }
+    }
+
+    setInterval(checkForNewSubmissions, 5000);
+</script>
+
+</body>
+</html>

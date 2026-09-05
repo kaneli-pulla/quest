@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ru"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet"
+          th:href="@{/css/global.css}">
+
+    <title>Администраторы</title>
+
+    <style>
+        .message {
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            border-radius: 10px;
+        }
+
+        .message-error {
+            background: var(--danger-soft);
+            color: var(--danger);
+        }
+
+        .message-success {
+            background: var(--success-soft);
+            color: var(--success);
+        }
+
+        .admin-row {
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .admin-row:last-child {
+            border-bottom: 0;
+        }
+
+        .admin-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .admin-name h3 {
+            margin: 0;
+        }
+
+        .admin-login {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .you-badge {
+            display: inline-block;
+            padding: 4px 7px;
+            border-radius: 7px;
+            background: var(--success-soft);
+            color: var(--success);
+            font-size: 12px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <a href="/quests"
+       class="back-link">
+        ← К квестам
+    </a>
+
+    <h1>Администраторы</h1>
+
+
+    <div th:if="${successMessage != null}"
+         class="message message-success"
+         th:text="${successMessage}">
+    </div>
+
+    <div th:if="${errorMessage != null}"
+         class="message message-error"
+         th:text="${errorMessage}">
+    </div>
+
+
+    <div class="card">
+
+        <h2>Добавить администратора</h2>
+
+        <form th:action="@{/admin/users}"
+              method="post">
+
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <label for="displayName">
+                Имя
+            </label>
+
+            <input id="displayName"
+                   name="displayName"
+                   type="text"
+                   placeholder="Например: Иван"
+                   required>
+
+            <label for="username">
+                Логин
+            </label>
+
+            <input id="username"
+                   name="username"
+                   type="text"
+                   autocomplete="off"
+                   required>
+
+            <label for="password">
+                Временный пароль
+            </label>
+
+            <input id="password"
+                   name="password"
+                   type="password"
+                   minlength="8"
+                   autocomplete="new-password"
+                   required>
+
+            <p class="hint">
+                Передайте этот логин и пароль только
+                конкретному администратору.
+                После входа он сможет поменять пароль.
+            </p>
+
+            <button type="submit"
+                    style="margin-top: 18px;">
+                Добавить администратора
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Текущие администраторы</h2>
+
+        <div class="admin-row"
+             th:each="admin : ${admins}">
+
+            <div class="admin-name">
+
+                <h3 th:text="${admin.displayName}">
+                    Анна
+                </h3>
+
+                <span class="you-badge"
+                      th:if="${admin.username == currentUsername}">
+                    Вы
+                </span>
+
+            </div>
+
+            <div class="admin-login">
+                Логин:
+                <strong th:text="${admin.username}">
+                    anna
+                </strong>
+            </div>
+
+
+            <form th:if="${admin.username != currentUsername}"
+                  th:action="@{/admin/users/{id}/delete(id=${admin.id})}"
+                  method="post"
+                  onsubmit="return confirm('Удалить доступ этого администратора?')">
+
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}">
+
+                <button type="submit"
+                        class="danger-button"
+                        style="margin-top: 12px;">
+                    Удалить доступ
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Сменить мой пароль</h2>
+
+        <form th:action="@{/admin/account/password}"
+              method="post">
+
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <label for="currentPassword">
+                Текущий пароль
+            </label>
+
+            <input id="currentPassword"
+                   name="currentPassword"
+                   type="password"
+                   autocomplete="current-password"
+                   required>
+
+            <label for="newPassword">
+                Новый пароль
+            </label>
+
+            <input id="newPassword"
+                   name="newPassword"
+                   type="password"
+                   minlength="8"
+                   autocomplete="new-password"
+                   required>
+
+            <button type="submit"
+                    style="margin-top: 18px;">
+                Сменить пароль
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>

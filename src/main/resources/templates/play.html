@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <title th:text="${quest.name}">Квест</title>
+
+    <style>
+        .team-name {
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+
+        .riddle {
+            position: relative;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 18px 18px 18px 72px;
+            margin-bottom: 12px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .riddle .riddle-number-badge {
+            position: absolute;
+            left: 18px;
+            top: 18px;
+        }
+
+        .play-menu {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .riddle-correct {
+            background: rgba(223, 243, 227, 0.96);
+            border: 1px solid #a9d8b2;
+        }
+
+        .riddle-wrong {
+            background: rgba(253, 224, 222, 0.96);
+            border: 1px solid #efaaa5;
+        }
+
+        .riddle-pending {
+            background: rgba(255, 243, 205, 0.97);
+            border: 1px solid #e8cf77;
+        }
+
+        .status {
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .status-correct { color: var(--success); }
+        .status-wrong { color: var(--danger); }
+        .status-pending { color: var(--warning); }
+
+        .riddle-description {
+            margin: 0 0 14px;
+            white-space: pre-wrap;
+            line-height: 1.55;
+        }
+    </style>
+</head>
+<body
+        th:classappend="${quest.backgroundImageUrl != null}
+            ? ' quest-background'
+            : ''"
+
+        th:style="${quest.backgroundImageUrl != null}
+            ? '--quest-background: url(' + quest.backgroundImageUrl + ')'
+            : ''">
+<div class="container">
+    <div class="header">
+        <div class="team-name">
+            Команда: <strong th:text="${team.name}">Котики</strong>
+        </div>
+        <h1 th:text="${quest.name}">Квест</h1>
+        <p th:if="${quest.description != null and !quest.description.isBlank()}"
+           th:text="${quest.description}">Описание</p>
+    </div>
+
+    <div class="waiting" th:if="${!questStarted}">
+        <h2>Квест ещё не начался</h2>
+        <p>Загадки появятся здесь после запуска мероприятия организатором.</p>
+    </div>
+
+    <div th:if="${questStarted}">
+        <div class="play-menu">
+
+            <a href="/play/rules"
+               class="secondary-button">
+                Правила и границы КП
+            </a>
+
+            <a href="/play/results"
+               class="action-button">
+                Таблица результатов
+            </a>
+
+        </div>
+
+        <div class="riddle"
+             th:each="riddle, riddleStat : ${riddles}"
+             th:classappend="${riddleStatuses[riddle.id] == 'CORRECT'} ? ' riddle-correct' :
+                 (${riddleStatuses[riddle.id] == 'WRONG'} ? ' riddle-wrong' :
+                 (${riddleStatuses[riddle.id] == 'PENDING_REVIEW'} ? ' riddle-pending' : ''))">
+
+            <div class="riddle-number-badge" th:text="${riddleStat.count}">1</div>
+
+            <div class="status status-correct"
+                 th:if="${riddleStatuses[riddle.id] == 'CORRECT'}">✓ Решено</div>
+
+            <div class="status status-wrong"
+                 th:if="${riddleStatuses[riddle.id] == 'WRONG'}">✕ Пока не решено</div>
+
+            <div class="status status-pending"
+                 th:if="${riddleStatuses[riddle.id] == 'PENDING_REVIEW'}">Ожидает проверки</div>
+
+            <p class="riddle-description" th:text="${riddle.description}">Описание</p>
+
+            <a th:href="@{/play/riddles/{id}(id=${riddle.id})}" class="action-button">Открыть</a>
+        </div>
+
+        <div class="waiting" th:if="${riddles.isEmpty()}">Загадок пока нет.</div>
+    </div>
+</div>
+</body>
+</html>

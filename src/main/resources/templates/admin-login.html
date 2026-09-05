@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet"
+          th:href="@{/css/global.css}">
+
+    <title>Вход администратора</title>
+
+    <style>
+        .auth-container {
+            width: 100%;
+            max-width: 460px;
+            margin: 70px auto;
+            padding: 16px;
+        }
+
+        .auth-card {
+            background: var(--surface);
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .message {
+            padding: 12px;
+            margin-bottom: 14px;
+            border-radius: 10px;
+        }
+
+        .message-error {
+            color: var(--danger);
+            background: var(--danger-soft);
+        }
+
+        .message-success {
+            color: var(--success);
+            background: var(--success-soft);
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="auth-container">
+
+    <div class="auth-card">
+
+        <h1>Администратор</h1>
+
+        <p class="muted">
+            Войдите для управления квестами.
+        </p>
+
+        <div th:if="${param.error}"
+             class="message message-error">
+            Неверный логин или пароль.
+        </div>
+
+        <div th:if="${param.logout}"
+             class="message message-success">
+            Вы вышли из админки.
+        </div>
+
+        <div th:if="${param.created}"
+             class="message message-success">
+            Первый администратор создан.
+            Теперь можно войти.
+        </div>
+
+        <div th:if="${param.removed}"
+             class="message message-error">
+            Ваш аккаунт администратора был удалён.
+        </div>
+
+        <form th:action="@{/admin/login}"
+              method="post">
+
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <label for="username">
+                Логин
+            </label>
+
+            <input id="username"
+                   name="username"
+                   type="text"
+                   autocomplete="username"
+                   autofocus
+                   required>
+
+            <label for="password">
+                Пароль
+            </label>
+
+            <input id="password"
+                   name="password"
+                   type="password"
+                   autocomplete="current-password"
+                   required>
+
+            <button type="submit"
+                    style="margin-top: 20px;">
+                Войти
+            </button>
+
+        </form>
+
+        <a href="/"
+           class="back-link"
+           style="margin-top: 20px;">
+            ← На главную
+        </a>
+
+    </div>
+
+</div>
+
+</body>
+</html>

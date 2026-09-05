@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <title>Квесты</title>
+
+
+
+    <style>
+        .quest-card {
+            background: var(--surface);
+            padding: 18px;
+            margin-bottom: 12px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .quest-card p {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Квесты</h1>
+    <div class="inline-actions"
+         style="margin-bottom: 18px;">
+
+        <a href="/admin/users"
+           class="secondary-button">
+            Администраторы
+        </a>
+
+        <form th:action="@{/admin/logout}"
+              method="post">
+
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <button type="submit"
+                    class="secondary-button">
+                Выйти
+            </button>
+
+        </form>
+
+    </div>
+
+    <a href="/quests/new" class="action-button" style="margin-bottom: 18px;">Создать квест</a>
+
+    <div class="quest-card" th:each="quest : ${quests}">
+        <h2 th:text="${quest.name}">Название квеста</h2>
+
+        <p th:if="${quest.description != null and !quest.description.isBlank()}"
+           th:text="${quest.description}">Описание</p>
+
+        <div class="stack-actions">
+            <a th:href="@{/quests/{id}(id=${quest.id})}" class="action-button">Открыть квест</a>
+
+            <form th:action="@{/quests/{id}/delete(id=${quest.id})}"
+                  method="post"
+                  onsubmit="return confirm('Удалить квест вместе со всеми командами, загадками, ответами и файлами?')">
+                <button type="submit" class="danger-button">Удалить квест</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

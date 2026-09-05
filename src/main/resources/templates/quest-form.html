@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet"
+          th:href="@{/css/global.css}">
+
+    <title th:text="${editing}
+            ? 'Редактирование квеста'
+            : 'Создание квеста'">
+        Квест
+    </title>
+
+    <style>
+        .form-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .large-textarea {
+            min-height: 280px;
+            line-height: 1.55;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .checkbox-row input {
+            width: auto;
+            margin: 0;
+        }
+
+        .checkbox-row label {
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .form-section {
+            margin-top: 28px;
+            padding-top: 22px;
+            border-top: 1px solid var(--border);
+        }
+
+        .form-section h2 {
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <a class="back-link"
+       th:if="${editing}"
+       th:href="@{/quests/{id}(id=${quest.id})}">
+        ← Назад к квесту
+    </a>
+
+    <a class="back-link"
+       th:if="${!editing}"
+       th:href="@{/quests}">
+        ← Все квесты
+    </a>
+
+
+    <div class="form-card">
+
+        <h1 th:text="${editing}
+                ? 'Редактирование квеста'
+                : 'Новый квест'">
+            Новый квест
+        </h1>
+
+
+        <form th:action="${formAction}"
+              method="post"
+              enctype="multipart/form-data">
+
+
+            <!-- ОСНОВНЫЕ ДАННЫЕ -->
+
+            <label for="name">
+                Название
+            </label>
+
+            <input id="name"
+                   name="name"
+                   type="text"
+                   th:value="${quest.name}"
+                   required>
+
+
+            <label for="description">
+                Краткое описание
+            </label>
+
+            <textarea id="description"
+                      name="description"
+                      placeholder="Короткое описание квеста"
+                      th:text="${quest.description}">
+            </textarea>
+
+
+            <!-- ПРАВИЛА -->
+
+            <div class="form-section">
+
+                <h2>Правила для участников</h2>
+
+                <p class="hint">
+                    Здесь можно написать большой текст.
+                    Переносы строк будут сохранены.
+                </p>
+
+                <textarea id="rules"
+                          name="rules"
+                          class="large-textarea"
+                          placeholder="Напишите правила квеста..."
+                          th:text="${quest.rules}">
+                </textarea>
+
+            </div>
+
+
+            <!-- КАРТА / ГРАНИЦЫ КП -->
+
+            <div class="form-section">
+
+                <h2>Границы КП</h2>
+
+                <p class="hint">
+                    Добавьте изображение с областью,
+                    внутри которой участникам разрешено
+                    выполнять задания на контрольных пунктах.
+                </p>
+
+                <img th:if="${editing
+                            and quest.checkpointBoundaryImageUrl != null}"
+                     th:src="${quest.checkpointBoundaryImageUrl}"
+                     class="background-preview"
+                     alt="Текущая карта границ КП">
+
+
+                <label for="checkpointBoundaryImage">
+                    <span th:if="${!editing
+                                 or quest.checkpointBoundaryImageUrl == null}">
+                        Изображение границ КП
+                    </span>
+
+                    <span th:if="${editing
+                                 and quest.checkpointBoundaryImageUrl != null}">
+                        Заменить изображение границ
+                    </span>
+                </label>
+
+
+                <input id="checkpointBoundaryImage"
+                       name="checkpointBoundaryImage"
+                       type="file"
+                       accept="image/jpeg,image/png,image/webp">
+
+
+                <div class="checkbox-row"
+                     th:if="${editing
+                            and quest.checkpointBoundaryImageUrl != null}">
+
+                    <input id="removeCheckpointBoundaryImage"
+                           name="removeCheckpointBoundaryImage"
+                           type="checkbox"
+                           value="true">
+
+                    <label for="removeCheckpointBoundaryImage">
+                        Удалить текущее изображение границ
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <!-- ФОН -->
+
+            <div class="form-section">
+
+                <h2>Оформление</h2>
+
+                <label for="backgroundImage">
+
+                    <span th:if="${!editing
+                                 or quest.backgroundImageUrl == null}">
+                        Фон квеста
+                    </span>
+
+                    <span th:if="${editing
+                                 and quest.backgroundImageUrl != null}">
+                        Заменить фон квеста
+                    </span>
+
+                </label>
+
+
+                <img th:if="${editing
+                            and quest.backgroundImageUrl != null}"
+                     th:src="${quest.backgroundImageUrl}"
+                     class="background-preview"
+                     alt="Текущий фон квеста">
+
+
+                <input id="backgroundImage"
+                       name="backgroundImage"
+                       type="file"
+                       accept="image/jpeg,image/png,image/webp">
+
+
+                <p class="hint">
+                    Фон отображается на страницах участников.
+                    Если новый файл не выбирать, текущий фон
+                    останется без изменений.
+                </p>
+
+
+                <div class="checkbox-row"
+                     th:if="${editing
+                            and quest.backgroundImageUrl != null}">
+
+                    <input id="removeBackground"
+                           name="removeBackground"
+                           type="checkbox"
+                           value="true">
+
+                    <label for="removeBackground">
+                        Удалить текущий фон
+                    </label>
+
+                </div>
+
+            </div>
+
+
+            <button type="submit"
+                    style="margin-top: 24px;"
+                    th:text="${editing}
+                        ? 'Сохранить изменения'
+                        : 'Создать квест'">
+                Создать квест
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>

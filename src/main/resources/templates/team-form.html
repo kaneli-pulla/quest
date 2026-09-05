@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/css/global.css}">
+    <title>Новая команда</title>
+</head>
+<body>
+<div class="container">
+    <a class="back-link" th:href="@{/quests/{id}(id=${quest.id})}">← Назад к квесту</a>
+
+    <div class="card">
+        <h1>Новая команда</h1>
+
+        <form th:action="@{/quests/{id}/teams(id=${quest.id})}" method="post">
+            <label for="name">Название команды</label>
+            <input id="name" name="name" type="text" required placeholder="Например: Котики">
+            <button type="submit" style="margin-top: 16px;">Создать команду</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>
